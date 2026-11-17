@@ -1,0 +1,175 @@
+[
+  {
+    "id": "ibps-po-mt-2025",
+    "organization": "Institute of Banking Personnel Selection (IBPS)",
+    "name": "IBPS CRP PO/MT — Probationary Officer / Management Trainee",
+    "shortName": "IBPS PO",
+    "category": "Banking",
+    "verification": "verified",
+    "verifiedOn": "2026-11-07",
+    "sourceUrl": "https://ibpsreg.ibps.in/gmcaug25/uploads/loadpdf.php?file=k7m5p%2BfQ15evx87U1tCXn5jWzst9tN%2FFppyXow%3D%3D&t=1LHArOLA2di0yczXwNDa083LmNWypw%3D%3D",
+    "sourceLabel": "IBPS — Guidelines for scanning & uploading photograph and signature (CRP PO/MT 2025)",
+    "sourceNote": "Specifications read directly from the official IBPS registration-portal guidelines PDF: photograph 200 × 230 px, 20–50 KB; signature 140 × 60 px, 10–20 KB; JPG/JPEG.",
+    "photo": {
+      "label": "Passport-style photograph",
+      "dimensions": { "width": 200, "height": 230, "aspectMin": 0.87, "aspectMax": 0.87 },
+      "minKB": 20,
+      "maxKB": 50,
+      "formats": ["image/jpeg"],
+      "dimensionsFixed": true,
+      "notes": [
+        "Recent passport-style colour photograph on a light, preferably white background.",
+        "Face square to the camera; no caps, hats or dark glasses.",
+        "200 × 230 px is the authority's preferred pixel size."
+      ]
+    },
+    "signature": {
+      "label": "Signature",
+      "dimensions": { "width": 140, "height": 60, "aspectMin": 2.333, "aspectMax": 2.333 },
+      "minKB": 10,
+      "maxKB": 20,
+      "formats": ["image/jpeg"],
+      "dimensionsFixed": true,
+      "notes": [
+        "Signed on white paper with a black ink pen.",
+        "Signature must be by the applicant, not a third party.",
+        "140 × 60 px is the authority's preferred pixel size."
+      ]
+    },
+    "photoCropAspect": 0.8696,
+    "signatureCropAspect": 2.3333
+  },
+  {
+    "id": "gate-2025",
+    "organization": "Indian Institute of Technology Roorkee — GATE 2025",
+    "name": "GATE 2025 — Graduate Aptitude Test in Engineering",
+    "shortName": "GATE 2025",
+    "category": "Engineering",
+    "verification": "verified",
+    "verifiedOn": "2026-11-07",
+    "sourceUrl": "https://gate2025.iitr.ac.in/photograph-and-signature.html",
+    "sourceLabel": "GATE 2025 — Photograph and Signature requirements (official organising institute page)",
+    "sourceNote": "Official GATE 2025 page: photo 3.5 × 4.5 cm, 200 × 260 px minimum to 530 × 690 px maximum, 5 KB–1 MB; signature 250 × 80 px minimum to 580 × 180 px maximum, 3 KB–1 MB; JPEG/JPG only.",
+    "photo": {
+      "label": "Passport photograph",
+      "dimensions": {
+        "minWidth": 200,
+        "maxWidth": 530,
+        "minHeight": 260,
+        "maxHeight": 690,
+        "aspectMin": 0.66,
+        "aspectMax": 0.89
+      },
+      "minKB": 5,
+      "maxKB": 1024,
+      "formats": ["image/jpeg"],
+      "dimensionsFixed": false,
+      "notes": [
+        "Passport size: 3.5 cm width × 4.5 cm height; face covers 60–70% of the frame.",
+        "Plain white background; frontal face; no caps, hats or sunglasses.",
+        "Aspect ratio must be between 0.66 and 0.89 (width ÷ height)."
+      ]
+    },
+    "signature": {
+      "label": "Signature",
+      "dimensions": {
+        "minWidth": 250,
+        "maxWidth": 580,
+        "minHeight": 80,
+        "maxHeight": 180,
+        "aspectMin": 2.75,
+        "aspectMax": 3.75
+      },
+      "minKB": 3,
+      "maxKB": 1024,
+      "formats": ["image/jpeg"],
+      "dimensionsFixed": false,
+      "notes": [
+        "Black or dark blue ink only.",
+        "Signature covers 70–80% of the cropped area.",
+        "Aspect ratio (width ÷ height) between 2.75 and 3.75."
+      ]
+    },
+    "photoCropAspect": 0.75,
+    "signatureCropAspect": 3.125
+  },
+  {
+    "id": "upsc-cse",
+    "organization": "Union Public Service Commission (UPSC)",
+    "name": "UPSC Civil Services Examination — Online Application",
+    "shortName": "UPSC CSE",
+    "category": "Civil Services",
+    "verification": "verified",
+    "verifiedOn": "2026-11-07",
+    "sourceUrl": "https://upsconline.nic.in/caf/assets/PDF/instruction-photo-signature-upload-upsc.pdf",
+    "sourceLabel": "UPSC — Instructions for uploading the photo & signature (official application portal)",
+    "sourceNote": "Official UPSC instructions: photograph JPG, 20–200 KB, face must cover at least 75% of the image; triple signature JPG, 20–100 KB, image width 350–500 px. UPSC does not prescribe fixed photo pixel dimensions.",
+    "photo": {
+      "label": "Passport photograph",
+      "dimensions": { "aspectMin": 0.66, "aspectMax": 1.0 },
+      "minKB": 20,
+      "maxKB": 200,
+      "formats": ["image/jpeg"],
+      "dimensionsFixed": false,
+      "notes": [
+        "JPG format, file name 'photo', 20–200 KB.",
+        "Face must cover at least 75% (3/4) of the photograph.",
+        "Plain white background, frontal view, both ears visible. No cap, mask or spectacles."
+      ]
+    },
+    "signature": {
+      "label": "Triple signature",
+      "dimensions": { "minWidth": 350, "maxWidth": 500, "aspectMin": 0.5, "aspectMax": 3.0 },
+      "minKB": 20,
+      "maxKB": 100,
+      "formats": ["image/jpeg"],
+      "dimensionsFixed": false,
+      "notes": [
+        "Sign three times vertically, one below the other, on plain white paper in black ink.",
+        "Scan all three signatures into one image; JPG format, file name 'signature'.",
+        "20–100 KB; image width 350–500 px."
+      ]
+    },
+    "photoCropAspect": 0.8,
+    "signatureCropAspect": 0.8
+  },
+  {
+    "id": "neet-ug-2025",
+    "organization": "National Testing Agency (NTA)",
+    "name": "NEET (UG) 2025 — Information Bulletin",
+    "shortName": "NEET UG",
+    "category": "Medical",
+    "verification": "verified",
+    "verifiedOn": "2026-11-07",
+    "sourceUrl": "https://cdnbbsr.s3waas.gov.in/s37bc1ec1d9c3426357e69acd5bf320061/uploads/2025/02/2025020754.pdf",
+    "sourceLabel": "NEET (UG) 2025 — Information Bulletin (official NTA document)",
+    "sourceNote": "Official NEET (UG) 2025 Information Bulletin: passport photograph 10–200 KB, signature 10–50 KB, JPG/JPEG. The bulletin does not state pixel dimensions; crop aspect is therefore free.",
+    "photo": {
+      "label": "Passport photograph",
+      "dimensions": { "aspectMin": 0.6, "aspectMax": 1.0 },
+      "minKB": 10,
+      "maxKB": 200,
+      "formats": ["image/jpeg"],
+      "dimensionsFixed": false,
+      "notes": [
+        "Recent colour passport-size photograph taken after 1 January 2025.",
+        "80% face visible, including ears, against a white background.",
+        "10–200 KB, JPG/JPEG. Pixel dimensions are not fixed by NTA."
+      ]
+    },
+    "signature": {
+      "label": "Signature",
+      "dimensions": { "aspectMin": 1.5, "aspectMax": 4.5 },
+      "minKB": 10,
+      "maxKB": 50,
+      "formats": ["image/jpeg"],
+      "dimensionsFixed": false,
+      "notes": [
+        "Scanned signature, clearly legible, JPG/JPEG.",
+        "10–50 KB. Pixel dimensions are not fixed by NTA."
+      ]
+    },
+    "photoCropAspect": 0.8,
+    "signatureCropAspect": 3.0
+  }
+]
