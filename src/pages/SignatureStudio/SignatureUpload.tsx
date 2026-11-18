@@ -7,7 +7,6 @@ import {
   PenLine,
   ShieldCheck,
   Sparkles,
-  Trash2,
 } from 'lucide-react';
 import { useApp } from '../../app/AppContext';
 import { ROUTES } from '../../app/routes';
@@ -102,16 +101,23 @@ export function SignatureUpload() {
               <FileChip
                 image={signature.source}
                 label="Signature"
-                onReplace={() => clearSignature()}
+                onReplaceFile={(next) => {
+                  setError(null);
+                  setSignatureSource(next);
+                  pushToast({
+                    tone: 'success',
+                    title: 'Signature replaced',
+                    message: `${next.width} × ${next.height} px · ${formatBytes(next.sizeBytes)}`,
+                  });
+                }}
+                onError={setError}
                 onRemove={() => {
                   clearSignature();
+                  setError(null);
                   pushToast({ tone: 'neutral', title: 'Signature removed', message: 'Nothing was saved to disk.' });
                 }}
               />
               <div className="source-panel__actions">
-                <Button variant="ghost" icon={Trash2} onClick={() => clearSignature()}>
-                  Remove
-                </Button>
                 <Button variant="primary" iconRight={ArrowRight} onClick={() => navigate(ROUTES.signatureEditor)}>
                   Open editor
                 </Button>

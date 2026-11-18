@@ -189,16 +189,29 @@ export async function compressCanvas(
     throw new CompressionError('No output could be produced. Try a different format or target.');
   }
 
-  const targetMet = chosen.blob.size < maxBytes;
-  const meetsMinimum = chosen.blob.size >= minBytes;
+  let finalBlob = chosen.blob;
+  if (
+    isLossy &&
+    settings.format === 'image/jpeg' &&
+    settings.mode !== 'manual' &&
+    minBytes > 0 &&
+    finalBlob.size < minBytes &&
+    settings.targetKB >= (requirement?.minKB ?? 0) &&
+    maxBytes > minBytes
+  ) {
+    finalBlob = await padJpegToMinimum(finalBlob, minBytes, maxBytes);
+  }
+
+  const targetMet = finalBlob.size < maxBytes;
+  const meetsMinimum = finalBlob.size >= minBytes;
 
   let note: string | undefined;
   if (!targetMet) {
     note = `Could not reach ${settings.targetKB} KB. The smallest achievable file was ${(
-      chosen.blob.size / KB
+      finalBlob.size / KB
     ).toFixed(1)} KB.`;
   } else if (!meetsMinimum) {
-    note = `Output is ${(chosen.blob.size / KB).toFixed(1)} KB, below the preset's ${
+    note = `Output is ${(finalBlob.size / KB).toFixed(1)} KB, below the preset's ${
       requirement?.minKB
     } KB minimum. Use a larger source image or a higher target.`;
   } else if (settings.format === 'image/png') {
@@ -206,8 +219,8 @@ export async function compressCanvas(
   }
 
   return {
-    blob: chosen.blob,
-    bytes: chosen.blob.size,
+    blob: finalBlob,
+    bytes: finalBlob.size,
     quality: chosen.quality,
     width: canvas.width,
     height: canvas.height,
@@ -222,8 +235,58 @@ export async function compressCanvas(
   };
 }
 
-function isPngGain(format: string): boolean {
-  return format === 'image/png';
+/**
+ * Insert standard JPEG COM (0xFF 0xFE) segments right after the SOI marker so
+ * small valid JPEGs satisfy portal minimum-byte thresholds without distorting pixels.
+ */
+export async function padJpegToMinimum(
+  blob: Blob,
+  minBytes: number,
+  maxBytes: number,
+): Promise<Blob> {
+  if (blob.type !== 'image/jpeg' || minBytes <= 0 || blob.size >= minBytes || minBytes >= maxBytes) {
+    return blob;
+  }
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  if (bytes.length < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+    return blob;
+  }
+  const headroom = maxBytes - minBytes;
+  const desired = Math.min(maxBytes - 1, minBytes + Math.min(512, Math.floor(headroom / 2)));
+  let remaining = desired - bytes.length;
+  if (remaining < 4) {
+    if (bytes.length + 4 >= maxBytes) return blob;
+    remaining = 4;
+  }
+  const segments: Uint8Array[] = [];
+  let addedBytes = 0;
+  while (remaining > 0) {
+    const segTotal = Math.min(remaining, 65535);
+    const payloadLen = Math.max(0, segTotal - 4);
+    const seg = new Uint8Array(4 + payloadLen);
+    const fieldLen = 2 + payloadLen;
+    seg[0] = 0xff;
+    seg[1] = 0xfe;
+    seg[2] = (fieldLen >> 8) & 0xff;
+    seg[3] = fieldLen & 0xff;
+    seg.fill(0x20, 4);
+    segments.push(seg);
+    addedBytes += seg.length;
+    remaining -= seg.length;
+    if (remaining > 0 && remaining < 4) {
+      if (bytes.length + addedBytes + 4 >= maxBytes) break;
+      remaining = 4;
+    }
+  }
+  const out = new Uint8Array(new ArrayBuffer(bytes.length + addedBytes));
+  out.set(bytes.subarray(0, 2), 0);
+  let offset = 2;
+  for (const seg of segments) {
+    out.set(seg, offset);
+    offset += seg.length;
+  }
+  out.set(bytes.subarray(2), offset);
+  return new Blob([out.buffer], { type: 'image/jpeg' });
 }
 
 export function validateCompressionSettings(settings: CompressionSettings): string | null {

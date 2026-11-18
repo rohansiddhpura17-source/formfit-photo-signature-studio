@@ -69,6 +69,8 @@ export function CropStage({
   }, [image, crop, adjustments, frame.width, frame.height, transparent, inkThreshold]);
 
   const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    window.getSelection()?.removeAllRanges();
     event.currentTarget.setPointerCapture(event.pointerId);
     drag.current = { x: event.clientX, y: event.clientY, ox: crop.offsetX, oy: crop.offsetY };
     setDragging(true);

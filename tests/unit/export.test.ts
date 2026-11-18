@@ -41,6 +41,12 @@ describe('buildFileName', () => {
     );
   });
 
+  it('uses official photo and signature filenames for UPSC CSE', () => {
+    const upsc = { ...preset, id: 'upsc-cse', shortName: 'UPSC CSE' } as Preset;
+    expect(buildFileName('photo', upsc, 600, 750, 'image/jpeg')).toBe('photo.jpg');
+    expect(buildFileName('signature', upsc, 400, 500, 'image/jpeg')).toBe('signature.jpg');
+  });
+
   it('uses a custom name when there is no preset', () => {
     expect(buildFileName('photo', null, 600, 800, 'image/webp', 'State PSC')).toBe(
       'FORMFIT_Photo_State-PSC_600x800.webp',

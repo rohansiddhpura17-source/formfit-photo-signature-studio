@@ -86,7 +86,7 @@ Open `http://localhost:5175/`.
 npm run build
 ```
 
-Produces `dist/index.html` (~568 KB) — a single self-contained HTML file with JS, CSS and the Inter font inlined as data URLs. Open it directly via `file://` with no network access.
+Produces `dist/index.html` (~529 KB) — a single self-contained HTML file with JS, CSS and the Inter font inlined as data URLs. Open it directly via `file://` with no network access.
 
 ### Typecheck & tests
 
@@ -195,8 +195,8 @@ No external network requests were made. Fonts, icons, presets and engines are al
 
 ---
 
-**Version:** 1.0.0 · Offline build · No account · No uploads · No tracking
-\n
+**Version:** 1.0.2 · Offline build · No account · No uploads · No tracking
+
 ---
 
 ## 👨‍💻 Developer & Contact

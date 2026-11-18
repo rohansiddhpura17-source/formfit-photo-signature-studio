@@ -41,6 +41,7 @@ import {
   updateCustomPreset,
   type CustomPresetInput,
 } from '../services/presetService';
+import { releaseImage } from '../engines/imageLoader';
 import { defaultAdjustments, defaultCompression, defaultCropFor, outputForPreset } from '../utils/geometry';
 
 interface AppValue {
@@ -70,6 +71,7 @@ interface AppValue {
   setSignatureResult: (result: SignatureJob['result'], report?: ValidationReport | null) => void;
   setSignaturePreset: (id: string) => void;
   activePreset: Preset | null;
+  activeSignaturePreset: Preset | null;
   history: HistoryRecord[];
   recordHistory: (record: HistoryRecord) => Promise<void>;
   removeHistory: (id: string) => Promise<void>;
@@ -234,6 +236,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     () => presets.find((preset) => preset.id === photo.presetId) ?? BUILTIN_PRESETS[0],
     [presets, photo.presetId],
   );
+  const activeSignaturePreset = useMemo(
+    () => presets.find((preset) => preset.id === signature.presetId) ?? BUILTIN_PRESETS[0],
+    [presets, signature.presetId],
+  );
 
   const pushToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
@@ -249,6 +255,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setPhotoSource = useCallback((image: LoadedImage) => {
     setPhoto((current) => {
+      if (current.source && current.source.url !== image.url) {
+        releaseImage(current.source);
+      }
       const preset = presets.find((p) => p.id === current.presetId) ?? BUILTIN_PRESETS[0];
       const crop = defaultCropFor(preset, 'photo');
       const dims = outputForPreset(preset, 'photo', crop.aspect);
@@ -267,6 +276,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearPhoto = useCallback(() => {
     setPhoto((current) => {
+      releaseImage(current.source);
       const preset = presets.find((p) => p.id === current.presetId) ?? BUILTIN_PRESETS[0];
       return {
         ...makePhotoJob(preset, settings),
@@ -278,12 +288,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updatePhotoCrop = useCallback((patch: Partial<CropSettings>) => {
     setPhoto((current) => {
       const crop = { ...current.crop, ...patch };
+      const aspectChanged =
+        patch.aspect !== undefined && Math.abs(patch.aspect - current.crop.aspect) > 0.001;
       const preset = presets.find((p) => p.id === current.presetId) ?? BUILTIN_PRESETS[0];
-      const dims = outputForPreset(preset, 'photo', crop.aspect);
+      const output = aspectChanged
+        ? { ...current.output, ...outputForPreset(preset, 'photo', crop.aspect) }
+        : current.output;
       return {
         ...current,
         crop,
-        output: { ...current.output, ...dims },
+        output,
         result: null,
         finalBlob: null,
         validation: null,
@@ -349,6 +363,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setSignatureSource = useCallback((image: LoadedImage) => {
     setSignature((current) => {
+      if (current.source && current.source.url !== image.url) {
+        releaseImage(current.source);
+      }
       const preset = presets.find((p) => p.id === current.presetId) ?? BUILTIN_PRESETS[0];
       const crop = defaultCropFor(preset, 'signature');
       const dims = outputForPreset(preset, 'signature', crop.aspect);
@@ -367,6 +384,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const clearSignature = useCallback(() => {
     setSignature((current) => {
+      releaseImage(current.source);
       const preset = presets.find((p) => p.id === current.presetId) ?? BUILTIN_PRESETS[0];
       return makeSignatureJob(preset, settings);
     });
@@ -375,12 +393,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const updateSignatureCrop = useCallback((patch: Partial<CropSettings>) => {
     setSignature((current) => {
       const crop = { ...current.crop, ...patch };
+      const aspectChanged =
+        patch.aspect !== undefined && Math.abs(patch.aspect - current.crop.aspect) > 0.001;
       const preset = presets.find((p) => p.id === current.presetId) ?? BUILTIN_PRESETS[0];
-      const dims = outputForPreset(preset, 'signature', crop.aspect);
+      const output = aspectChanged
+        ? { ...current.output, ...outputForPreset(preset, 'signature', crop.aspect) }
+        : current.output;
       return {
         ...current,
         crop,
-        output: { ...current.output, ...dims },
+        output,
         result: null,
         finalBlob: null,
         validation: null,
@@ -528,6 +550,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setSignatureResult,
     setSignaturePreset,
     activePreset,
+    activeSignaturePreset,
     history,
     recordHistory,
     removeHistory,

@@ -2,9 +2,9 @@
 
 # FORMFIT Studio — Testing Report
 
-**Version:** 1.0.0  
+**Version:** 1.0.2  
 **Product:** FORMFIT Studio  
-**Test date:** 2026-11-07  
+**Test date:** 2026-11-18  
 **Environment:** macOS, Chromium (headless), Node.js, Vite dev + singlefile build
 
 ---
@@ -18,36 +18,36 @@ macOS resource-fork `._*` files are excluded from test collection.
 | Test file | Tests | Status |
 |-----------|-------|--------|
 | `format.test.ts` | 8 | ✅ Passed |
-| `geometry.test.ts` | 11 | ✅ Passed |
-| `presets.test.ts` | 16 | ✅ Passed |
-| `export.test.ts` | 5 | ✅ Passed |
-| `compression.test.ts` | 4 | ✅ Passed |
-| `validation.test.ts` | 10 | ✅ Passed |
+| `geometry.test.ts` | 15 | ✅ Passed |
+| `presets.test.ts` | 17 | ✅ Passed |
+| `export.test.ts` | 6 | ✅ Passed |
+| `compression.test.ts` | 7 | ✅ Passed |
+| `validation.test.ts` | 11 | ✅ Passed |
 
-**Total: 54 tests across 6 files — all passing.**
+**Total: 64 tests across 6 files — all passing.**
 
 ### Coverage
 
 - Byte/KB conversion (1 KB = 1024 bytes), rounding rules, formatBytes em-dash for invalid values
-- Geometry: gcd, aspect labeling, fitContain, scaleToWidth, dimension spec detection (exact/range/free), recommendedDimensions for fixed/range/free presets, compression defaults with safety margin
-- Presets: four built-in verified presets, IBPS exact dimensions/KB, UPSC free dimensions not invented, search by org/name/category, custom preset validation (name, org, dimension ranges, min<max, formats, http(s) source)
-- Export: sanitizeSegment (punctuation, diacritics, fallback, length cap), buildFileName for photo/signature/preset/null cases
-- Compression settings: target bounds, manual quality bounds only in manual mode
-- Validation: IBPS pass, max-size fail at/above limit, min-size fail below limit, format-allowed fail, dimension fail on wrong pixels, integrity fail on undecodable blob, N/A for presets without published pixel sizes, reportSummary, actualSizeLabel
+- Geometry: gcd, aspect labeling, fitContain, scaleToWidth, dimension spec detection (exact/range/free), dimension clamping (`GATE 2025` 4:5 and `UPSC CSE` free clamping), rotation math (90° turns combined with positive/negative fine angles), recommendedDimensions for fixed/range/free presets, compression defaults with safety margin
+- Presets: four built-in verified presets (`GATE 2025` 4:5 crop default, `UPSC CSE` signature summary `350–500 px × free height`), IBPS exact dimensions/KB, UPSC free photo dimensions not invented, search by org/name/category, custom preset validation (name, org, dimension ranges, min<max, formats, http(s) source)
+- Export: sanitizeSegment (punctuation, diacritics, fallback, length cap), buildFileName (`FORMFIT_*` and UPSC CSE `photo.jpg`/`signature.jpg`)
+- Compression & loader: target bounds, manual quality bounds only in manual mode, `padJpegToMinimum`, magic-byte `sniffImageType` verification
+- Validation: IBPS pass, max-size fail at/above limit, strict min-size fail below limit (not ready), exact minimum boundary pass, format-allowed fail, dimension fail on wrong pixels, integrity fail on undecodable blob, N/A for presets without published pixel sizes, reportSummary, actualSizeLabel
 
 ---
 
 ## 2. TypeScript typecheck
 
 - `npx tsc --noEmit` — passes with no errors
-- `npm run typecheck` (`tsc -b`) — passes
+- `npm run typecheck` (`tsc -b --pretty false`) — passes
 
 ---
 
 ## 3. Production build
 
 - `npm run build` — `tsc --noEmit && vite build`
-- Output: `dist/index.html` ~568 KB, single self-contained file
+- Output: `dist/index.html` ~529 KB, single self-contained file
 - Inter font inlined as data URL (verified `data:font/woff2;base64` present)
 - No external asset references in `dist/index.html`
 

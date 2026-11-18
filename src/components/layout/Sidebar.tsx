@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import {
   ArrowLeftRight,
   Clock3,
@@ -7,11 +8,13 @@ import {
   History,
   Images,
   LayoutDashboard,
+  Menu,
   PenLine,
   Settings,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
+  X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useApp } from '../../app/AppContext';
@@ -123,38 +126,115 @@ export function Sidebar() {
 
 export function MobileNav() {
   const { route, navigate } = useApp();
+  const [moreOpen, setMoreOpen] = useState(false);
+
   const items: NavItem[] = [
     { label: 'Home', path: ROUTES.dashboard, icon: LayoutDashboard, match: ['/dashboard'] },
     { label: 'Photo', path: ROUTES.photo, icon: Images, match: ['/photo'] },
     { label: 'Presets', path: ROUTES.presets, icon: FileSliders, match: ['/presets'] },
     { label: 'Export', path: ROUTES.export, icon: Download, match: ['/export'] },
   ];
-  const moreActive = !items.some((item) => item.match.some((m) => route.path.startsWith(m)));
+
+  const moreItems: NavItem[] = [
+    { label: 'Signature Studio', path: ROUTES.signature, icon: PenLine, match: ['/signature'] },
+    { label: 'Compression Studio', path: ROUTES.compression, icon: Gauge, match: ['/compression', '/compare'] },
+    { label: 'Custom Presets', path: ROUTES.customPresets, icon: SlidersHorizontal, match: ['/custom-presets'] },
+    { label: 'History', path: ROUTES.history, icon: History, match: ['/history'] },
+    { label: 'Settings', path: ROUTES.settings, icon: Settings, match: ['/settings'] },
+  ];
+
+  const moreActive = moreItems.some((item) =>
+    item.match.some((m) => route.path === m || route.path.startsWith(`${m}/`)),
+  );
+
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [route.path]);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMoreOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [moreOpen]);
+
   return (
-    <nav className="mobile-nav" aria-label="Mobile navigation">
-      {items.map((item) => {
-        const active = item.match.some((m) => route.path.startsWith(m));
-        return (
-          <button
-            key={item.path}
-            className={`mobile-nav__item ${active ? 'is-active' : ''}`}
-            onClick={() => navigate(item.path)}
-            aria-current={active ? 'page' : undefined}
-          >
-            <item.icon size={20} strokeWidth={1.8} aria-hidden />
-            <span>{item.label}</span>
-          </button>
-        );
-      })}
-      <button
-        className={`mobile-nav__item ${moreActive ? 'is-active' : ''}`}
-        onClick={() => navigate(ROUTES.settings)}
-        aria-label="More and settings"
-      >
-        <Settings size={20} strokeWidth={1.8} aria-hidden />
-        <span>More</span>
-      </button>
-    </nav>
+    <>
+      {moreOpen && (
+        <div
+          className="mobile-more-backdrop"
+          onClick={() => setMoreOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      {moreOpen && (
+        <div className="mobile-more-menu" role="menu" aria-label="More navigation">
+          <div className="mobile-more-menu__head">
+            <span>More tools</span>
+            <button
+              type="button"
+              className="icon-btn icon-btn--sm"
+              onClick={() => setMoreOpen(false)}
+              aria-label="Close navigation menu"
+            >
+              <X size={15} />
+            </button>
+          </div>
+          {moreItems.map((item) => {
+            const active = item.match.some((m) => route.path === m || route.path.startsWith(`${m}/`));
+            return (
+              <button
+                key={item.path}
+                type="button"
+                role="menuitem"
+                className={`mobile-more-menu__item ${active ? 'is-active' : ''}`}
+                onClick={() => {
+                  setMoreOpen(false);
+                  navigate(item.path);
+                }}
+                aria-current={active ? 'page' : undefined}
+              >
+                <item.icon size={17} strokeWidth={1.8} aria-hidden />
+                <span>{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <nav className="mobile-nav" aria-label="Mobile navigation">
+        {items.map((item) => {
+          const active = item.match.some((m) => route.path.startsWith(m));
+          return (
+            <button
+              key={item.path}
+              type="button"
+              className={`mobile-nav__item ${active ? 'is-active' : ''}`}
+              onClick={() => {
+                setMoreOpen(false);
+                navigate(item.path);
+              }}
+              aria-current={active ? 'page' : undefined}
+            >
+              <item.icon size={20} strokeWidth={1.8} aria-hidden />
+              <span>{item.label}</span>
+            </button>
+          );
+        })}
+        <button
+          type="button"
+          className={`mobile-nav__item ${moreOpen || moreActive ? 'is-active' : ''}`}
+          onClick={() => setMoreOpen((open) => !open)}
+          aria-expanded={moreOpen}
+          aria-haspopup="menu"
+          aria-label="More tools and settings"
+        >
+          <Menu size={20} strokeWidth={1.8} aria-hidden />
+          <span>More</span>
+        </button>
+      </nav>
+    </>
   );
 }
 

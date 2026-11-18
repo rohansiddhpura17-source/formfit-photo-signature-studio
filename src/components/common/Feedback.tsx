@@ -59,7 +59,9 @@ export function ValidationList({ report, compact = false }: { report: Validation
                       : ': not applicable'}
               </span>
             </span>
-            {!compact && <span className="validation-item__detail">{check.detail}</span>}
+            {(!compact || check.status === 'fail' || check.status === 'warn') && (
+              <span className="validation-item__detail">{check.detail}</span>
+            )}
           </span>
         </li>
       ))}

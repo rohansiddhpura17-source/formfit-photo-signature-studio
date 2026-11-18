@@ -61,9 +61,17 @@ export function CompressionStudio() {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
   const [runKey, setRunKey] = useState(0);
+  const [targetText, setTargetText] = useState(String(job.compression.targetKB));
+  const targetFocusedRef = useRef(false);
   const runID = useRef(0);
   const result = job.result;
   const previewUrl = useBlobUrl(result?.blob ?? null);
+
+  useEffect(() => {
+    if (!targetFocusedRef.current) {
+      setTargetText(String(job.compression.targetKB));
+    }
+  }, [job.compression.targetKB, isSignature]);
 
   const transparent =
     isSignature && signature.transparent && job.output.format !== 'image/jpeg';
@@ -113,6 +121,10 @@ export function CompressionStudio() {
     }
     const id = ++runID.current;
     let cancelled = false;
+    const activeEl = document.activeElement;
+    if (!activeEl || (activeEl.tagName !== 'INPUT' && activeEl.tagName !== 'TEXTAREA')) {
+      window.getSelection()?.removeAllRanges();
+    }
     setStatus('running');
     setError(null);
 
@@ -177,15 +189,13 @@ export function CompressionStudio() {
     }
   };
 
-  // Same wording as Compare and Export: 'Target met' means under the
-  // maximum AND at least the minimum. Under the maximum but below the
-  // minimum is a warning, not a success and not a failure.
   const belowMin = result ? result.bytes < requirement.minKB * 1024 : false;
+  const resultOk = result ? result.targetMet && !belowMin : false;
   const resultBadge = result
     ? !result.targetMet
-      ? { tone: 'warning' as const, label: 'Needs attention' }
+      ? { tone: 'error' as const, label: 'Needs attention' }
       : belowMin
-        ? { tone: 'warning' as const, label: 'Under limit · below minimum' }
+        ? { tone: 'error' as const, label: 'Below minimum' }
         : { tone: 'success' as const, label: 'Target met' }
     : null;
 
@@ -306,9 +316,8 @@ export function CompressionStudio() {
               showActual={Boolean(result)}
             />
             <p className="compression-meter-note">
-              <Info size={13} aria-hidden /> 1 KB = 1024 bytes. The file must be strictly below
-              {requirement.maxKB} KB. Below {requirement.minKB} KB is a warning, not a failure — some
-              portals reject files that are too small.
+              <Info size={13} aria-hidden /> 1 KB = 1024 bytes. The file must be strictly below{' '}
+              {requirement.maxKB} KB and at least {requirement.minKB} KB to pass export validation.
             </p>
           </div>
 
@@ -338,9 +347,9 @@ export function CompressionStudio() {
           )}
 
           {result && result.targetMet && result.bytes < requirement.minKB * 1024 && (
-            <Notice tone="warning" title="Below the minimum size">
-              The file is under {requirement.minKB} KB. Some portals reject files that are too small;
-              raise the target or use a larger source.
+            <Notice tone="error" title="Below the minimum size">
+              The file is under {requirement.minKB} KB and will fail mandatory validation. Raise the
+              target or switch from Manual mode to Automatic.
             </Notice>
           )}
 
@@ -360,11 +369,27 @@ export function CompressionStudio() {
             <p className="eyebrow">Target</p>
             <div className="target-row">
               <NumberInput
-                value={job.compression.targetKB}
+                value={targetText}
                 min={2}
                 max={10240}
                 suffix="KB"
-                onChange={(event) => update({ targetKB: Number(event.target.value) || 1 })}
+                onFocus={() => {
+                  targetFocusedRef.current = true;
+                }}
+                onChange={(event) => {
+                  const raw = event.target.value;
+                  setTargetText(raw);
+                  if (raw.trim() === '') return;
+                  const parsed = Number(raw);
+                  if (!Number.isFinite(parsed)) return;
+                  update({ targetKB: parsed });
+                }}
+                onBlur={() => {
+                  targetFocusedRef.current = false;
+                  if (targetText.trim() === '') {
+                    setTargetText(String(job.compression.targetKB));
+                  }
+                }}
                 aria-label="Target file size in KB"
               />
               <div className="target-quick">
@@ -372,7 +397,11 @@ export function CompressionStudio() {
                   <button
                     key={margin}
                     className="chip"
-                    onClick={() => update({ targetKB: Math.max(2, requirement.maxKB - margin) })}
+                    onClick={() => {
+                      const next = Math.max(2, requirement.maxKB - margin);
+                      setTargetText(String(next));
+                      update({ targetKB: next });
+                    }}
                   >
                     Max − {margin}
                   </button>
@@ -449,13 +478,15 @@ export function CompressionStudio() {
             <div className="rail-result-head">
               <div>
                 <p className="eyebrow">Result</p>
-                <h2 className="rail-block__title">{result ? `${outputKB} KB` : 'Waiting for a result'}</h2>
+                <h2 className="rail-block__title">
+                  {result ? <span key="result">{outputKB} KB</span> : <span key="waiting">Waiting for a result</span>}
+                </h2>
               </div>
               {status === 'running' ? (
                 <Badge tone="accent"><Loader2 size={11} className="spin" aria-hidden /> Encoding</Badge>
               ) : result ? (
-                <Badge tone={result.targetMet ? 'success' : 'error'} icon={result.targetMet ? Check : CircleAlert}>
-                  {result.targetMet ? 'Under limit' : 'Over limit'}
+                <Badge tone={resultOk ? 'success' : 'error'} icon={resultOk ? Check : CircleAlert}>
+                  {!result.targetMet ? 'Over limit' : belowMin ? 'Below minimum' : 'Under limit'}
                 </Badge>
               ) : (
                 <Badge tone="outline">Idle</Badge>

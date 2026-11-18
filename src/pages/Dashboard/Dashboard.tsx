@@ -36,7 +36,7 @@ export function Dashboard() {
 
   const recent = history.slice(0, 4);
   const hasWork = Boolean(photo.source || signature.source);
-  const verified = presets.filter((preset) => preset.verification === 'verified').slice(0, 3);
+  const verified = presets.filter((preset) => preset.verification === 'verified');
 
   const steps = [
     {

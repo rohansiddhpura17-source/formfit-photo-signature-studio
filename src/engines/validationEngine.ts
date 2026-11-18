@@ -109,18 +109,16 @@ export async function validateImageBlob(args: ValidateArgs): Promise<ValidationR
       : `${kb.toFixed(1)} KB is at or above the ${requirement.maxKB} KB limit.`,
   });
 
-  // Minimum size is a warning, not a blocking failure: the file is real
-  // and downloadable, but some portals reject files that are too small.
-  // No in-app action can raise the size of an already-max-quality file,
-  // so blocking the export on it only makes a correct file look broken.
+  // Both minimum and maximum file-size requirements are mandatory so
+  // files that portals would reject for being too small are never marked Ready.
   const aboveMin = blob.size >= requirement.minKB * KB;
   checks.push({
     id: 'min-size',
     label: 'Minimum file size',
-    status: aboveMin ? 'pass' : 'warn',
+    status: aboveMin ? 'pass' : 'fail',
     detail: aboveMin
       ? `${kb.toFixed(1)} KB meets the ${requirement.minKB} KB minimum.`
-      : `${kb.toFixed(1)} KB is below the ${requirement.minKB} KB minimum. Some portals reject files that are too small; use a larger source if the portal requires it.`,
+      : `${kb.toFixed(1)} KB is below the ${requirement.minKB} KB minimum.`,
   });
 
   const ready = checks.every((check) => check.status !== 'fail');

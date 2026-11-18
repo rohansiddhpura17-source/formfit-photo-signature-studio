@@ -50,7 +50,7 @@ describe('validateImageBlob — IBPS photo', () => {
     expect(report.checks.find((check) => check.id === 'max-size')!.status).toBe('fail');
   });
 
-  it('warns on the minimum check below the limit but stays ready', async () => {
+  it('fails the minimum check below the limit and marks not ready', async () => {
     const report = await validateImageBlob({
       blob: jpegOfSize(5),
       width: 200,
@@ -58,10 +58,22 @@ describe('validateImageBlob — IBPS photo', () => {
       format: 'image/jpeg',
       requirement: ibps.photo,
     });
-    // Minimum size is a warning, not a blocking failure: the file is real
-    // and downloadable, but some portals reject files that are too small.
+    expect(report.ready).toBe(false);
+    const minCheck = report.checks.find((check) => check.id === 'min-size')!;
+    expect(minCheck.status).toBe('fail');
+    expect(minCheck.detail).toMatch(/below the 20 KB minimum/);
+  });
+
+  it('passes at the exact minimum size boundary', async () => {
+    const report = await validateImageBlob({
+      blob: jpegOfSize(20),
+      width: 200,
+      height: 230,
+      format: 'image/jpeg',
+      requirement: ibps.photo,
+    });
     expect(report.ready).toBe(true);
-    expect(report.checks.find((check) => check.id === 'min-size')!.status).toBe('warn');
+    expect(report.checks.find((check) => check.id === 'min-size')!.status).toBe('pass');
   });
 
   it('rejects a format the preset does not accept', async () => {

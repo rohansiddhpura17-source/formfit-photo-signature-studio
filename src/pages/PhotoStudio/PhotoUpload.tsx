@@ -8,7 +8,6 @@ import {
   ScanFace,
   ShieldCheck,
   Sparkles,
-  Trash2,
 } from 'lucide-react';
 import { useApp } from '../../app/AppContext';
 import { ROUTES } from '../../app/routes';
@@ -105,10 +104,16 @@ export function PhotoUpload() {
               <FileChip
                 image={photo.source}
                 label="Photograph"
-                onReplace={() => {
-                  clearPhoto();
+                onReplaceFile={(next) => {
                   setError(null);
+                  setPhotoSource(next);
+                  pushToast({
+                    tone: 'success',
+                    title: 'Photograph replaced',
+                    message: `${next.width} × ${next.height} px · ${formatBytes(next.sizeBytes)}`,
+                  });
                 }}
+                onError={setError}
                 onRemove={() => {
                   clearPhoto();
                   setError(null);
@@ -116,9 +121,6 @@ export function PhotoUpload() {
                 }}
               />
               <div className="source-panel__actions">
-                <Button variant="ghost" icon={Trash2} onClick={() => clearPhoto()}>
-                  Remove
-                </Button>
                 <Button variant="primary" iconRight={ArrowRight} onClick={() => navigate(ROUTES.photoCrop)}>
                   Crop &amp; position
                 </Button>

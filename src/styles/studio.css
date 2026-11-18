@@ -6,6 +6,13 @@
   min-height: calc(100vh - var(--topbar-h));
   display: flex;
   flex-direction: column;
+  user-select: none;
+}
+
+.studio-page input,
+.studio-page select,
+.studio-page textarea {
+  user-select: text;
 }
 
 .studio-bar {

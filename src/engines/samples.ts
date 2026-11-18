@@ -131,6 +131,19 @@ export async function createSamplePhoto(): Promise<LoadedImage> {
   ctx.ellipse(600, 780, 210, 210, 0, 0, Math.PI * 2);
   ctx.fill();
 
+  // Add subtle deterministic sensor grain so JPEG compression behaves realistically.
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const px = imgData.data;
+  let seed = 0x12345678;
+  for (let i = 0; i < px.length; i += 4) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const delta = ((seed >>> 24) % 19) - 9;
+    px[i] = Math.max(0, Math.min(255, px[i] + delta));
+    px[i + 1] = Math.max(0, Math.min(255, px[i + 1] + delta));
+    px[i + 2] = Math.max(0, Math.min(255, px[i + 2] + delta));
+  }
+  ctx.putImageData(imgData, 0, 0);
+
   const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.94));
   if (!blob) throw new Error('Could not create sample photograph');
   return loadImageFile(new File([blob], 'sample-portrait.jpg', { type: 'image/jpeg' }));

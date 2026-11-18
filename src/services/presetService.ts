@@ -1,6 +1,7 @@
 import builtinData from '../../data/presets.json';
 import type { ImageRequirement, OutputFormat, Preset, PresetCategory } from '../types';
 import { bytesToKB } from '../utils/format';
+import { describeDimensions } from '../utils/geometry';
 import { deleteCustomPreset, loadCustomPresets, saveCustomPreset } from './storageService';
 
 export const BUILTIN_PRESETS = builtinData as Preset[];
@@ -197,12 +198,7 @@ export function presetRangeLabel(preset: Preset, kind: 'photo' | 'signature'): s
 
 export function presetOutputSummary(preset: Preset, kind: 'photo' | 'signature'): string {
   const req = kind === 'photo' ? preset.photo : preset.signature;
-  const d = req.dimensions;
-  if (d.width && d.height) return `${d.width} × ${d.height} px`;
-  if (d.minWidth || d.maxWidth || d.minHeight || d.maxHeight) {
-    return `${d.minWidth ?? '—'}–${d.maxWidth ?? '—'} × ${d.minHeight ?? '—'}–${d.maxHeight ?? '—'} px`;
-  }
-  return 'No fixed pixel size';
+  return describeDimensions(req.dimensions, req.dimensionsFixed);
 }
 
 export function presetSizeOf(preset: Preset, kind: 'photo' | 'signature'): string {

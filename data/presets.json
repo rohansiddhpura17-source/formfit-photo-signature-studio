@@ -90,7 +90,7 @@
         "Aspect ratio (width ÷ height) between 2.75 and 3.75."
       ]
     },
-    "photoCropAspect": 0.75,
+    "photoCropAspect": 0.8,
     "signatureCropAspect": 3.125
   },
   {

@@ -225,9 +225,9 @@ export function PresetLibrary() {
       <div className="library-note">
         <FileSliders size={16} aria-hidden />
         <p>
-          Three of these presets are verified against the authority's own documents. NEET values are
-          read from the official Information Bulletin; pixel dimensions are not fixed by NTA, so the
-          crop ratio is a working choice, not an official requirement.
+          All four official presets are verified against the authority's published documents. For
+          UPSC CSE photographs and NEET UG images, pixel dimensions are not fixed by the authority,
+          so the crop ratio is a working choice rather than an official requirement.
         </p>
       </div>
     </div>

@@ -1,15 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
-  Contrast,
   Droplets,
   Eraser,
   Info,
   PenLine,
   RotateCcw,
   ScanLine,
-  Sun,
 } from 'lucide-react';
 import { useApp } from '../../app/AppContext';
 import { ROUTES } from '../../app/routes';
@@ -20,13 +18,22 @@ import { NumberInput, Select } from '../../components/common/Field';
 import { Segmented, Slider } from '../../components/common/Feedback';
 import { CropStage } from '../../components/editor/CropStage';
 import { formatLabel } from '../../utils/format';
-import { aspectLabel, hasExactDimensions } from '../../utils/geometry';
+import {
+  applyFineRotation,
+  aspectLabel,
+  clampOutputDimensions,
+  defaultCropFor,
+  hasExactDimensions,
+  outputForPreset,
+  rotateByNinety,
+  splitRotation,
+} from '../../utils/geometry';
 import type { OutputFormat } from '../../types';
 
 export function SignatureEditor() {
   const {
     signature,
-    activePreset,
+    activeSignaturePreset: activePreset,
     updateSignatureCrop,
     updateSignatureAdjustments,
     updateSignatureSettings,
@@ -35,9 +42,38 @@ export function SignatureEditor() {
     pushToast,
   } = useApp();
 
+  const [widthText, setWidthText] = useState(String(signature.output.width));
+  const [heightText, setHeightText] = useState(String(signature.output.height));
+  const focusedRef = useRef<'width' | 'height' | null>(null);
+
   useEffect(() => {
     if (!signature.source) navigate(ROUTES.signature);
   }, [signature.source, navigate]);
+
+  useEffect(() => {
+    if (focusedRef.current !== 'width') setWidthText(String(signature.output.width));
+    if (focusedRef.current !== 'height') setHeightText(String(signature.output.height));
+  }, [signature.output.width, signature.output.height]);
+
+  const ratios = useMemo(() => {
+    if (!activePreset) return [2.3333];
+    const spec = activePreset.signature.dimensions;
+    if (hasExactDimensions(spec) || (spec.aspectMin && spec.aspectMax && Math.abs(spec.aspectMin - spec.aspectMax) < 0.01)) {
+      return [activePreset.signatureCropAspect];
+    }
+    const min = spec.aspectMin ?? 0.4;
+    const max = spec.aspectMax ?? 5.0;
+    const raw = [activePreset.signatureCropAspect, 3.5, 3, 2.33, 2, 1.5, 1, 0.8].filter(
+      (value) => value >= min - 0.01 && value <= max + 0.01,
+    );
+    const deduped: number[] = [];
+    for (const value of raw) {
+      if (!deduped.some((existing) => Math.abs(existing - value) < 0.05)) {
+        deduped.push(value);
+      }
+    }
+    return deduped.length > 0 ? deduped : [activePreset.signatureCropAspect];
+  }, [activePreset]);
 
   if (!signature.source || !activePreset) {
     return (
@@ -54,7 +90,42 @@ export function SignatureEditor() {
   }
 
   const alpha = signature.output.format !== 'image/jpeg';
-  const fixed = hasExactDimensions(activePreset.signature.dimensions);
+  const spec = activePreset.signature.dimensions;
+  const fixed = hasExactDimensions(spec);
+
+  const handleWidthChange = (raw: string) => {
+    setWidthText(raw);
+    if (raw.trim() === '') return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const dims = clampOutputDimensions(parsed, 'width', signature.crop.aspect, spec);
+    updateSignatureOutput(dims);
+    setHeightText(String(dims.height));
+  };
+
+  const handleHeightChange = (raw: string) => {
+    setHeightText(raw);
+    if (raw.trim() === '') return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const dims = clampOutputDimensions(parsed, 'height', signature.crop.aspect, spec);
+    updateSignatureOutput(dims);
+    setWidthText(String(dims.width));
+  };
+
+  const commitDimensions = (axis: 'width' | 'height') => {
+    focusedRef.current = null;
+    const raw = axis === 'width' ? widthText : heightText;
+    const parsed = Number(raw);
+    const fallback = axis === 'width' ? signature.output.width : signature.output.height;
+    const dims =
+      raw.trim() !== '' && Number.isFinite(parsed) && parsed > 0
+        ? clampOutputDimensions(parsed, axis, signature.crop.aspect, spec)
+        : clampOutputDimensions(fallback, axis, signature.crop.aspect, spec);
+    updateSignatureOutput(dims);
+    setWidthText(String(dims.width));
+    setHeightText(String(dims.height));
+  };
 
   const setTransparent = (value: boolean) => {
     updateSignatureSettings({ transparent: value });
@@ -79,6 +150,15 @@ export function SignatureEditor() {
     { value: 'image/webp', label: 'WebP' },
   ];
 
+  const reset = () => {
+    const defaultCrop = defaultCropFor(activePreset, 'signature');
+    const dims = outputForPreset(activePreset, 'signature', defaultCrop.aspect);
+    updateSignatureCrop(defaultCrop);
+    updateSignatureAdjustments({ brightness: 100, contrast: 100, saturation: 100 });
+    updateSignatureOutput(dims);
+    pushToast({ tone: 'neutral', title: 'Signature reset' });
+  };
+
   return (
     <div className="studio-page">
       <div className="studio-bar">
@@ -95,18 +175,7 @@ export function SignatureEditor() {
             variant="ghost"
             size="sm"
             icon={RotateCcw}
-            onClick={() => {
-              updateSignatureCrop({
-                zoom: 1,
-                offsetX: 0,
-                offsetY: 0,
-                rotation: 0,
-                aspect: activePreset.signatureCropAspect,
-                showFaceGuide: false,
-              });
-              updateSignatureAdjustments({ brightness: 100, contrast: 100, saturation: 100 });
-              pushToast({ tone: 'neutral', title: 'Signature reset' });
-            }}
+            onClick={reset}
           >
             Reset
           </Button>
@@ -131,14 +200,14 @@ export function SignatureEditor() {
             <div className="canvas-toolbar__group">
               <button
                 className="icon-btn icon-btn--sm"
-                onClick={() => updateSignatureCrop({ rotation: (signature.crop.rotation - 90 + 360) % 360 })}
+                onClick={() => updateSignatureCrop({ rotation: rotateByNinety(signature.crop.rotation, -90) })}
                 aria-label="Rotate left 90 degrees"
               >
                 <RotateCcw size={15} />
               </button>
               <button
                 className="icon-btn icon-btn--sm"
-                onClick={() => updateSignatureCrop({ rotation: (signature.crop.rotation + 90) % 360 })}
+                onClick={() => updateSignatureCrop({ rotation: rotateByNinety(signature.crop.rotation, 90) })}
                 aria-label="Rotate right 90 degrees"
               >
                 <RotateCcw size={15} className="flip-x" />
@@ -205,21 +274,23 @@ export function SignatureEditor() {
             />
             <Slider
               label="Fine rotation"
-              value={Math.max(-10, Math.min(10, signature.crop.rotation > 180 ? signature.crop.rotation - 360 : signature.crop.rotation))}
+              value={splitRotation(signature.crop.rotation).fine}
               min={-10}
               max={10}
               step={1}
-              onChange={(value) => updateSignatureCrop({ rotation: value })}
+              onChange={(value) =>
+                updateSignatureCrop({ rotation: applyFineRotation(signature.crop.rotation, value) })
+              }
               formatValue={(value) => `${value}°`}
             />
-            {!fixed && (
+            {!fixed && ratios.length > 1 && (
               <div className="ratio-picker ratio-picker--compact">
-                {[3, 2.33, 2, 1].map((ratio) => (
+                {ratios.map((ratio) => (
                   <button
                     key={ratio}
-                    className={`ratio ${Math.abs(signature.crop.aspect - ratio) < 0.02 ? 'is-active' : ''}`}
+                    className={`ratio ${Math.abs(signature.crop.aspect - ratio) < 0.03 ? 'is-active' : ''}`}
                     onClick={() => updateSignatureCrop({ aspect: ratio })}
-                    aria-pressed={Math.abs(signature.crop.aspect - ratio) < 0.02}
+                    aria-pressed={Math.abs(signature.crop.aspect - ratio) < 0.03}
                   >
                     {aspectLabel(ratio)}
                   </button>
@@ -276,15 +347,16 @@ export function SignatureEditor() {
                 <label htmlFor="sig-width">Width</label>
                 <NumberInput
                   id="sig-width"
-                  value={signature.output.width}
-                  min={32}
-                  max={6000}
+                  value={widthText}
+                  min={spec.minWidth ?? 32}
+                  max={spec.maxWidth ?? 6000}
                   disabled={fixed}
                   suffix="px"
-                  onChange={(event) => {
-                    const width = Math.max(32, Math.min(6000, Math.round(Number(event.target.value) || 0)));
-                    updateSignatureOutput({ width, height: Math.round(width / signature.crop.aspect) });
+                  onFocus={() => {
+                    focusedRef.current = 'width';
                   }}
+                  onChange={(event) => handleWidthChange(event.target.value)}
+                  onBlur={() => commitDimensions('width')}
                 />
               </div>
               <span className="dimension-x" aria-hidden>×</span>
@@ -292,15 +364,16 @@ export function SignatureEditor() {
                 <label htmlFor="sig-height">Height</label>
                 <NumberInput
                   id="sig-height"
-                  value={signature.output.height}
-                  min={32}
-                  max={6000}
+                  value={heightText}
+                  min={spec.minHeight ?? 32}
+                  max={spec.maxHeight ?? 6000}
                   disabled={fixed}
                   suffix="px"
-                  onChange={(event) => {
-                    const height = Math.max(32, Math.min(6000, Math.round(Number(event.target.value) || 0)));
-                    updateSignatureOutput({ height, width: Math.round(height * signature.crop.aspect) });
+                  onFocus={() => {
+                    focusedRef.current = 'height';
                   }}
+                  onChange={(event) => handleHeightChange(event.target.value)}
+                  onBlur={() => commitDimensions('height')}
                 />
               </div>
             </div>

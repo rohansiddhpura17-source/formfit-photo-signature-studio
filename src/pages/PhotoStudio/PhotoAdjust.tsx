@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -6,7 +6,6 @@ import {
   Images,
   Info,
   RotateCcw,
-  SlidersHorizontal,
   Sun,
 } from 'lucide-react';
 import { useApp } from '../../app/AppContext';
@@ -18,7 +17,7 @@ import { NumberInput, Select } from '../../components/common/Field';
 import { Slider } from '../../components/common/Feedback';
 import { renderCrop } from '../../engines/imageCropper';
 import { formatLabel } from '../../utils/format';
-import { hasExactDimensions, hasRangeDimensions } from '../../utils/geometry';
+import { clampOutputDimensions, hasExactDimensions, hasRangeDimensions } from '../../utils/geometry';
 import type { Adjustments, CropSettings, LoadedImage } from '../../types';
 
 export function PhotoAdjust() {
@@ -31,9 +30,18 @@ export function PhotoAdjust() {
     pushToast,
   } = useApp();
 
+  const [widthText, setWidthText] = useState(String(photo.output.width));
+  const [heightText, setHeightText] = useState(String(photo.output.height));
+  const focusedRef = useRef<'width' | 'height' | null>(null);
+
   useEffect(() => {
     if (!photo.source) navigate(ROUTES.photo);
   }, [photo.source, navigate]);
+
+  useEffect(() => {
+    if (focusedRef.current !== 'width') setWidthText(String(photo.output.width));
+    if (focusedRef.current !== 'height') setHeightText(String(photo.output.height));
+  }, [photo.output.width, photo.output.height]);
 
   if (!photo.source || !activePreset) {
     return (
@@ -53,18 +61,38 @@ export function PhotoAdjust() {
   const fixed = hasExactDimensions(spec);
   const range = hasRangeDimensions(spec);
 
-  const setWidth = (width: number) => {
-    const safe = Math.max(32, Math.min(6000, Math.round(width || 0)));
-    let nextWidth = safe;
-    let nextHeight = Math.round(safe / photo.crop.aspect);
-    if (range) {
-      if (spec.minWidth) nextWidth = Math.max(nextWidth, spec.minWidth);
-      if (spec.maxWidth) nextWidth = Math.min(nextWidth, spec.maxWidth);
-      nextHeight = Math.round(nextWidth / photo.crop.aspect);
-      if (spec.minHeight) nextHeight = Math.max(nextHeight, spec.minHeight);
-      if (spec.maxHeight) nextHeight = Math.min(nextHeight, spec.maxHeight);
-    }
-    updatePhotoOutput({ width: nextWidth, height: Math.max(1, nextHeight) });
+  const handleWidthChange = (raw: string) => {
+    setWidthText(raw);
+    if (raw.trim() === '') return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const dims = clampOutputDimensions(parsed, 'width', photo.crop.aspect, spec);
+    updatePhotoOutput(dims);
+    setHeightText(String(dims.height));
+  };
+
+  const handleHeightChange = (raw: string) => {
+    setHeightText(raw);
+    if (raw.trim() === '') return;
+    const parsed = Number(raw);
+    if (!Number.isFinite(parsed) || parsed <= 0) return;
+    const dims = clampOutputDimensions(parsed, 'height', photo.crop.aspect, spec);
+    updatePhotoOutput(dims);
+    setWidthText(String(dims.width));
+  };
+
+  const commitDimensions = (axis: 'width' | 'height') => {
+    focusedRef.current = null;
+    const raw = axis === 'width' ? widthText : heightText;
+    const parsed = Number(raw);
+    const fallback = axis === 'width' ? photo.output.width : photo.output.height;
+    const dims =
+      raw.trim() !== '' && Number.isFinite(parsed) && parsed > 0
+        ? clampOutputDimensions(parsed, axis, photo.crop.aspect, spec)
+        : clampOutputDimensions(fallback, axis, photo.crop.aspect, spec);
+    updatePhotoOutput(dims);
+    setWidthText(String(dims.width));
+    setHeightText(String(dims.height));
   };
 
   const reset = () => {
@@ -187,12 +215,16 @@ export function PhotoAdjust() {
                 <label htmlFor="photo-width">Width</label>
                 <NumberInput
                   id="photo-width"
-                  value={photo.output.width}
-                  min={32}
-                  max={6000}
+                  value={widthText}
+                  min={spec.minWidth ?? 32}
+                  max={spec.maxWidth ?? 6000}
                   disabled={fixed}
                   suffix="px"
-                  onChange={(event) => setWidth(Number(event.target.value))}
+                  onFocus={() => {
+                    focusedRef.current = 'width';
+                  }}
+                  onChange={(event) => handleWidthChange(event.target.value)}
+                  onBlur={() => commitDimensions('width')}
                 />
               </div>
               <span className="dimension-x" aria-hidden>×</span>
@@ -200,15 +232,16 @@ export function PhotoAdjust() {
                 <label htmlFor="photo-height">Height</label>
                 <NumberInput
                   id="photo-height"
-                  value={photo.output.height}
-                  min={32}
-                  max={6000}
-                  disabled={fixed || range}
+                  value={heightText}
+                  min={spec.minHeight ?? 32}
+                  max={spec.maxHeight ?? 6000}
+                  disabled={fixed}
                   suffix="px"
-                  onChange={(event) => {
-                    const height = Math.max(1, Math.round(Number(event.target.value) || 0));
-                    updatePhotoOutput({ height, width: Math.round(height * photo.crop.aspect) });
+                  onFocus={() => {
+                    focusedRef.current = 'height';
                   }}
+                  onChange={(event) => handleHeightChange(event.target.value)}
+                  onBlur={() => commitDimensions('height')}
                 />
               </div>
             </div>

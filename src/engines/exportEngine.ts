@@ -20,12 +20,16 @@ export function buildFileName(
   format: OutputFormat,
   customName?: string,
 ): string {
+  const ext = formatExtension(format);
+  if (preset?.id === 'upsc-cse') {
+    return `${kind === 'photo' ? 'photo' : 'signature'}.${ext}`;
+  }
   const presetPart = sanitizeSegment(
     preset ? preset.shortName : customName || 'Custom',
     'Custom',
   );
   const kindPart = kind === 'photo' ? 'Photo' : 'Signature';
-  return `FORMFIT_${kindPart}_${presetPart}_${width}x${height}.${formatExtension(format)}`;
+  return `FORMFIT_${kindPart}_${presetPart}_${width}x${height}.${ext}`;
 }
 
 /** Trigger a real browser download from an encoded Blob. */

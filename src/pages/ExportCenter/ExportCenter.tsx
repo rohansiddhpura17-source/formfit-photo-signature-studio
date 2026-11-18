@@ -4,8 +4,6 @@ import {
   Check,
   CircleAlert,
   Download,
-  ExternalLink,
-  FileCheck2,
   Images,
   Loader2,
   PenLine,
@@ -18,7 +16,7 @@ import { ROUTES } from '../../app/routes';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { EmptyState, PageIntro } from '../../components/common/EmptyState';
-import { Modal, ValidationList } from '../../components/common/Feedback';
+import { ValidationList } from '../../components/common/Feedback';
 import { useBlobUrl } from '../../components/editor/CompareSlider';
 import { validateImageBlob } from '../../engines/validationEngine';
 import { buildFileName, downloadBlob } from '../../engines/exportEngine';
@@ -47,7 +45,6 @@ export function ExportCenter() {
   const signatureUrl = useBlobUrl(signature.result?.blob ?? null);
   const validated = useRef<WeakSet<Blob>>(new WeakSet());
   const [checking, setChecking] = useState(false);
-  const [downloadAnyway, setDownloadAnyway] = useState<DocKind | null>(null);
   const [exporting, setExporting] = useState<DocKind | null>(null);
 
   const validateDoc = async (kind: DocKind) => {
@@ -137,12 +134,16 @@ export function ExportCenter() {
     };
   };
 
-  const download = async (kind: DocKind, force = false) => {
+  const download = async (kind: DocKind) => {
     const job = kind === 'photo' ? photo : signature;
     const preset = kind === 'photo' ? photoPreset : signaturePreset;
     if (!job.result || !job.source || !preset) return;
-    if (!force && !job.validation?.ready) {
-      setDownloadAnyway(kind);
+    if (!job.validation?.ready) {
+      pushToast({
+        tone: 'error',
+        title: 'File failed validation',
+        message: 'Resolve the failed checks in Compression Studio before downloading.',
+      });
       return;
     }
     setExporting(kind);
@@ -218,8 +219,7 @@ export function ExportCenter() {
           job={photo}
           preset={photoPreset}
           previewUrl={photoUrl}
-          onDownload={() => download('photo')}
-          onAnyway={() => setDownloadAnyway('photo')}
+          onDownload={() => void download('photo')}
           onEdit={() => navigate(ROUTES.photoAdjust)}
           onCompress={() => navigate(ROUTES.compression)}
           exporting={exporting === 'photo'}
@@ -229,8 +229,7 @@ export function ExportCenter() {
           job={signature}
           preset={signaturePreset}
           previewUrl={signatureUrl}
-          onDownload={() => download('signature')}
-          onAnyway={() => setDownloadAnyway('signature')}
+          onDownload={() => void download('signature')}
           onEdit={() => navigate(ROUTES.signatureEditor)}
           onCompress={() => navigate(`${ROUTES.compression}?doc=signature`)}
           exporting={exporting === 'signature'}
@@ -254,35 +253,6 @@ export function ExportCenter() {
           </p>
         </div>
       </div>
-
-      <Modal
-        open={downloadAnyway !== null}
-        onClose={() => setDownloadAnyway(null)}
-        title="Download an unvalidated file?"
-        description="One or more checks have failed. The file is real, but it may be rejected by the form."
-        footer={
-          <>
-            <Button variant="ghost" onClick={() => setDownloadAnyway(null)}>Cancel</Button>
-            <Button
-              variant="danger"
-              icon={Download}
-              onClick={() => {
-                const kind = downloadAnyway!;
-                setDownloadAnyway(null);
-                void download(kind, true);
-              }}
-            >
-              Download anyway
-            </Button>
-          </>
-        }
-      >
-        {downloadAnyway && (
-          <ValidationList
-            report={(downloadAnyway === 'photo' ? photo.validation : signature.validation) ?? { checks: [], ready: false, checkedAt: '' }}
-          />
-        )}
-      </Modal>
     </div>
   );
 }
@@ -293,7 +263,6 @@ function ExportCard({
   preset,
   previewUrl,
   onDownload,
-  onAnyway,
   onEdit,
   onCompress,
   exporting,
@@ -303,7 +272,6 @@ function ExportCard({
   preset: Preset;
   previewUrl: string | null;
   onDownload: () => void;
-  onAnyway: () => void;
   onEdit: () => void;
   onCompress: () => void;
   exporting: boolean;
@@ -389,18 +357,13 @@ function ExportCard({
               icon={Download}
               onClick={onDownload}
               loading={exporting}
-              disabled={!report}
+              disabled={!report || !report.ready}
             >
               Download {isPhoto ? 'photograph' : 'signature'}
             </Button>
             <Button variant="ghost" size="sm" onClick={onCompress}>
               Recompress
             </Button>
-            {report && !report.ready && (
-              <button className="text-link text-link--danger" onClick={onAnyway}>
-                Download anyway
-              </button>
-            )}
           </div>
         </>
       )}

@@ -134,16 +134,53 @@ export function UploadZone({
 export function FileChip({
   image,
   onReplace,
+  onReplaceFile,
+  onError,
   onRemove,
   label,
 }: {
   image: LoadedImage;
   onReplace?: () => void;
+  onReplaceFile?: (image: LoadedImage) => void;
+  onError?: (message: string) => void;
   onRemove?: () => void;
   label: string;
 }) {
+  const replaceInputRef = useRef<HTMLInputElement>(null);
+  const [replacing, setReplacing] = useState(false);
+
+  const handleReplace = async (file: File | undefined) => {
+    if (!file || !onReplaceFile) return;
+    setReplacing(true);
+    try {
+      const next = await loadImageFile(file);
+      onReplaceFile(next);
+    } catch (error) {
+      const message =
+        error instanceof ImageLoadError
+          ? error.message
+          : 'This image could not be read. Try another JPEG, PNG or WebP file.';
+      onError?.(message);
+    } finally {
+      setReplacing(false);
+    }
+  };
+
   return (
     <div className="file-chip">
+      {onReplaceFile && (
+        <input
+          ref={replaceInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="sr-only"
+          onChange={(event) => {
+            void handleReplace(event.target.files?.[0]);
+            event.target.value = '';
+          }}
+          aria-label={`Choose replacement ${label.toLowerCase()}`}
+        />
+      )}
       <div className="file-chip__thumb">
         <img src={image.url} alt="" />
       </div>
@@ -157,13 +194,21 @@ export function FileChip({
         </p>
       </div>
       <div className="file-chip__actions">
-        {onReplace && (
-          <button className="text-link" onClick={onReplace}>
-            Replace
+        {(onReplaceFile || onReplace) && (
+          <button
+            type="button"
+            className="text-link"
+            disabled={replacing}
+            onClick={() => {
+              if (onReplaceFile) replaceInputRef.current?.click();
+              else onReplace?.();
+            }}
+          >
+            {replacing ? 'Loading…' : 'Replace'}
           </button>
         )}
         {onRemove && (
-          <button className="icon-btn icon-btn--sm" onClick={onRemove} aria-label={`Remove ${label.toLowerCase()}`}>
+          <button type="button" className="icon-btn icon-btn--sm" onClick={onRemove} aria-label={`Remove ${label.toLowerCase()}`}>
             <X size={15} />
           </button>
         )}

@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ImageRequirement, Preset } from '../../src/types';
 import {
+  applyFineRotation,
   aspectLabel,
+  clampOutputDimensions,
+  combineRotation,
   defaultCompression,
   describeDimensions,
   fitContain,
@@ -9,8 +12,10 @@ import {
   hasExactDimensions,
   hasRangeDimensions,
   recommendedDimensions,
+  rotateByNinety,
   safeTargetKB,
   scaleToWidth,
+  splitRotation,
 } from '../../src/utils/geometry';
 
 const fixedRequirement: ImageRequirement = {
@@ -82,7 +87,59 @@ describe('dimension specs', () => {
     expect(describeDimensions(fixedRequirement.dimensions, true)).toBe('200 × 230 px');
     expect(describeDimensions(rangeRequirement.dimensions, false)).toBe('200–530 × 260–690 px');
     expect(describeDimensions({ maxWidth: 600, maxHeight: 200 }, false)).toBe('≤ 600 × ≤ 200 px');
+    expect(describeDimensions({ minWidth: 350, maxWidth: 500 }, false)).toBe('350–500 px × free height');
     expect(describeDimensions({}, false)).toBe('No fixed pixel size');
+  });
+});
+
+describe('dimension clamping and aspect preservation', () => {
+  it('enforces GATE 2025 4:5 aspect ratio when clamping low widths', () => {
+    expect(clampOutputDimensions(200, 'width', 0.8, rangeRequirement.dimensions)).toEqual({
+      width: 208,
+      height: 260,
+    });
+    expect(clampOutputDimensions(3, 'width', 0.8, rangeRequirement.dimensions)).toEqual({
+      width: 208,
+      height: 260,
+    });
+    expect(clampOutputDimensions(350, 'width', 0.8, rangeRequirement.dimensions)).toEqual({
+      width: 350,
+      height: 438,
+    });
+  });
+
+  it('clamps UPSC CSE free dimensions within 32–6000 px while keeping ratio', () => {
+    expect(clampOutputDimensions(5, 'height', 0.8, freeRequirement.dimensions)).toEqual({
+      width: 32,
+      height: 40,
+    });
+    expect(clampOutputDimensions(9000, 'height', 0.8, freeRequirement.dimensions)).toEqual({
+      width: 4800,
+      height: 6000,
+    });
+  });
+});
+
+describe('rotation mathematics', () => {
+  it('combines 90-degree turns with fine rotation angles', () => {
+    let angle = rotateByNinety(0, 90);
+    expect(angle).toBe(90);
+    angle = applyFineRotation(angle, 2);
+    expect(angle).toBe(92);
+    expect(splitRotation(angle)).toEqual({ base: 90, fine: 2 });
+
+    angle = rotateByNinety(angle, 90);
+    expect(angle).toBe(182);
+    angle = rotateByNinety(angle, -90);
+    expect(angle).toBe(92);
+  });
+
+  it('supports negative fine angles and counterclockwise turns', () => {
+    const neg = applyFineRotation(0, -5);
+    expect(neg).toBe(-5);
+    expect(rotateByNinety(neg, 90)).toBe(85);
+    expect(rotateByNinety(0, -90)).toBe(270);
+    expect(combineRotation(270, -4)).toBe(266);
   });
 });
 

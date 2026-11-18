@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Columns2 } from 'lucide-react';
 
 export function CompareSlider({
@@ -53,12 +53,18 @@ export function CompareSlider({
 }
 
 export function useBlobUrl(blob: Blob | null): string | null {
-  const url = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob]);
+  const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
+    if (!blob) {
+      setUrl(null);
+      return;
+    }
+    const nextUrl = URL.createObjectURL(blob);
+    setUrl(nextUrl);
     return () => {
-      if (url) URL.revokeObjectURL(url);
+      URL.revokeObjectURL(nextUrl);
     };
-  }, [url]);
+  }, [blob]);
   return url;
 }
 

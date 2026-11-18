@@ -2,7 +2,7 @@
 
 # FORMFIT Studio — Technical Documentation
 
-**Version:** 1.0.0  
+**Version:** 1.0.2  
 **Product:** FORMFIT Studio — Offline Photo & Signature Preparation
 
 ---
@@ -25,7 +25,7 @@ src/
 
 ### State management
 
-`AppContext` holds: settings (appearance, density, defaults), custom presets, history, toasts, photo job, signature job, route. Active preset follows `photo.presetId`; signature has its own `presetId`. Presets array = `[...BUILTIN_PRESETS, ...customPresets]`.
+`AppContext` holds: settings (appearance, density, defaults), custom presets, history, toasts, photo job, signature job, route. `activePreset` follows `photo.presetId`, while `activeSignaturePreset` follows `signature.presetId` independently. Presets array = `[...BUILTIN_PRESETS, ...customPresets]`.
 
 ### Routing
 
@@ -118,8 +118,9 @@ Statuses: `pass` / `fail` / `na`. Overall `ready` when no check fails. Never cla
 ## 5. Export engine — `engines/exportEngine.ts`
 
 - `sanitizeSegment(value)` — NFKD normalize, strip punctuation, collapse whitespace to hyphens, cap at 48 chars, fallback
-- `buildFileName(kind, preset, width, height, format, customName)` — `FORMFIT_Photo_<Preset>_<W>x<H>.<ext>`
+- `buildFileName(kind, preset, width, height, format, customName)` — `photo.<ext>` / `signature.<ext>` for `upsc-cse`, and `FORMFIT_<Kind>_<Preset>_<W>x<H>.<ext>` otherwise
 - `downloadBlob(blob, filename)` — real browser download via `URL.createObjectURL` + anchor click; revokes URL after 4s
+- `useBlobUrl(blob)` in `CompareSlider.tsx` — StrictMode-safe object URL lifecycle created and revoked inside `useEffect`
 - `previewUrl(blob)` — object URL for previews
 
 ---
@@ -141,7 +142,7 @@ Persisted: settings, custom presets, processing history metadata. Original image
 - `vite-plugin-singlefile` inlines all JS and CSS into `dist/index.html`
 - `assetsInlineLimit: 100_000_000` inlines Inter `woff2` as data URL
 - `cssCodeSplit: false` — single stylesheet
-- `dist/index.html` ~568 KB, self-contained, opens via `file://` with no network
+- `dist/index.html` ~529 KB, self-contained, opens via `file://` with no network
 - Verified: loads with Wi-Fi disabled; no external network requests
 
 ---
@@ -159,13 +160,13 @@ Hash-based custom router supports `file://`. Routes: `/welcome`, `/dashboard`, `
 Vitest, Node environment, `tests/unit/*.test.ts` (resource-fork `._*` files excluded):
 
 - `format.test.ts` — bytes/KB conversion, formatBytes, labels, clamp, percentChange
-- `geometry.test.ts` — gcd, aspectLabel, fitContain, scaleToWidth, dimension specs, recommendedDimensions, compression defaults
+- `geometry.test.ts` — gcd, aspectLabel, fitContain, scaleToWidth, dimension specs/clamping, rotation math, recommendedDimensions, compression defaults
 - `presets.test.ts` — built-in presets, findPreset, searchPresets, custom preset validation, summaries
-- `export.test.ts` — sanitizeSegment, buildFileName
-- `compression.test.ts` — validateCompressionSettings
-- `validation.test.ts` — validateImageBlob (IBPS pass/fail/min/max, format, dimensions, integrity, N/A for free dims), helpers
+- `export.test.ts` — sanitizeSegment, buildFileName (including UPSC CSE official filenames)
+- `compression.test.ts` — validateCompressionSettings, `padJpegToMinimum`, magic-byte `sniffImageType`
+- `validation.test.ts` — validateImageBlob (IBPS pass/fail/min-size fail/exact min/max, format, dimensions, integrity, N/A for free dims), helpers
 
-54 tests across 6 files, all passing.
+64 tests across 6 files, all passing.
 
 ---
 

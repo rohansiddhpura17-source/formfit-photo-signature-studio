@@ -58,6 +58,12 @@ describe('built-in presets', () => {
     expect(upsc!.photo.dimensions.width).toBeUndefined();
     expect(upsc!.photo.dimensions.height).toBeUndefined();
     expect(upsc!.photo.dimensionsFixed).toBe(false);
+    expect(presetOutputSummary(upsc!, 'signature')).toBe('350–500 px × free height');
+  });
+
+  it('defaults GATE 2025 photo crop to 4:5 aspect ratio', () => {
+    const gate = findPreset(BUILTIN_PRESETS, 'gate-2025');
+    expect(gate!.photoCropAspect).toBeCloseTo(0.8, 3);
   });
 
   it('exposes every category filter', () => {

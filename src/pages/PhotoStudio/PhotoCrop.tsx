@@ -20,7 +20,14 @@ import { Notice } from '../../components/common/Badge';
 import { EmptyState } from '../../components/common/EmptyState';
 import { Slider, Switch } from '../../components/common/Feedback';
 import { CropStage } from '../../components/editor/CropStage';
-import { defaultCropFor, aspectLabel, hasExactDimensions } from '../../utils/geometry';
+import {
+  applyFineRotation,
+  aspectLabel,
+  defaultCropFor,
+  hasExactDimensions,
+  rotateByNinety,
+  splitRotation,
+} from '../../utils/geometry';
 import { formatLabel } from '../../utils/format';
 
 export function PhotoCrop() {
@@ -66,7 +73,7 @@ export function PhotoCrop() {
   };
 
   const rotate = (delta: number) => {
-    updatePhotoCrop({ rotation: (((photo.crop.rotation + delta) % 360) + 360) % 360 });
+    updatePhotoCrop({ rotation: rotateByNinety(photo.crop.rotation, delta) });
   };
 
   return (
@@ -183,13 +190,15 @@ export function PhotoCrop() {
 
             <Slider
               label="Fine rotation"
-              value={photo.crop.rotation > 180 ? photo.crop.rotation - 360 : photo.crop.rotation}
+              value={splitRotation(photo.crop.rotation).fine}
               min={-10}
               max={10}
               step={1}
-              onChange={(value) => updatePhotoCrop({ rotation: value })}
+              onChange={(value) =>
+                updatePhotoCrop({ rotation: applyFineRotation(photo.crop.rotation, value) })
+              }
               formatValue={(value) => `${value}°`}
-              hint="Use the rotate buttons for 90° turns."
+              hint="Combines with 90° turns. Use the rotate buttons for 90° steps."
             />
 
             <Switch

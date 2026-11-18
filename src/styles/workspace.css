@@ -541,7 +541,7 @@
 
 .mini-presets {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 10px;
   margin-bottom: 26px;
 }
@@ -2144,6 +2144,11 @@
   min-width: 0;
 }
 
+.history-row__file > div {
+  min-width: 0;
+  flex: 1;
+}
+
 .history-row__kind {
   display: grid;
   place-items: center;
@@ -2175,6 +2180,13 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.history-row__preset,
+.history-row__output,
+.history-row__size,
+.history-row__date {
+  min-width: 0;
 }
 
 .history-row__preset p,

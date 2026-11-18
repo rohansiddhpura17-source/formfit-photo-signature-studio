@@ -54,8 +54,6 @@ export function ComparePage() {
 
   const reduction = Math.max(0, Math.round(((job.source.sizeBytes - job.result.bytes) / job.source.sizeBytes) * 100));
 
-  // Same wording as Compression: 'Target met' means under the maximum AND
-  // at least the minimum. Below the minimum is a warning, not a success.
   const requirement = isSignature ? preset?.signature : preset?.photo;
   const belowMin = requirement ? job.result.bytes < requirement.minKB * 1024 : false;
 
@@ -66,8 +64,8 @@ export function ComparePage() {
         title="Inspect the compression"
         description="Drag the divider to compare the uncompressed render with the actual encoded file. Both are shown at the export dimensions."
         meta={
-          <Badge tone={!job.result.targetMet ? 'error' : belowMin ? 'warning' : 'success'}>
-            {!job.result.targetMet ? 'Over target' : belowMin ? 'Under limit · below minimum' : 'Target met'}
+          <Badge tone={!job.result.targetMet || belowMin ? 'error' : 'success'}>
+            {!job.result.targetMet ? 'Over target' : belowMin ? 'Below minimum' : 'Target met'}
           </Badge>
         }
         actions={
